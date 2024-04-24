@@ -1,0 +1,11 @@
+/.ipynb_checkpoints/
+/.vscode/
+/data/
+/images/
+/*.png
+/*.ipynb
+/*.txt
+/chromedriver
+/.DS_Store
+/.idea/
+/__pycache__/
