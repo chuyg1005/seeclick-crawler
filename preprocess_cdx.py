@@ -1,15 +1,10 @@
-import hashlib
 from tqdm import tqdm
 from urllib.parse import urlparse
 import random
 import argparse
+from utils import parse_url_from_cdx_line
 
 
-# 定义一个函数来生成URL的哈希码
-def generate_url_hash(url):
-    md5 = hashlib.md5()
-    md5.update(url.encode('utf-8'))
-    return md5.hexdigest()
 
 
 def get_host_from_url(url):
@@ -24,10 +19,7 @@ def distinct_urls_from_cdx(cdx_file_path, unique_cdx_file_path):
     domain_dict = {}
     with open(cdx_file_path, 'r', encoding='utf-8') as in_file:
         for line in tqdm(in_file):
-            # 将每一行分割成字段
-            fields = line.strip().split(' ')
-
-            url = fields[3][1:-2]
+            url = parse_url_from_cdx_line(line)
             host = get_host_from_url(url)
             if host in domain_dict:
                 domain_dict[host].append(line)

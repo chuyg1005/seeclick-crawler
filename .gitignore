@@ -9,3 +9,6 @@
 /.DS_Store
 /.idea/
 /__pycache__/
+/check.py
+/mhtml_filter.py
+/mhtml_main.py

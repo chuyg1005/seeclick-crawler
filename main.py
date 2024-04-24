@@ -43,31 +43,36 @@ def split_task_files(cdx_file_path, out_dir, num_workers, url_st, num_urls):
 
 # 定义一个函数，用于并行执行的任务
 def worker_function(args):
-    number = args[0]
+    worker_num = args[0]
     in_dir = args[1]
-    scrape_hover = args[2]
-    loglevel = args[3]
-    in_file = open(os.path.join(in_dir, f"{number}.txt"), 'r', encoding='utf-8')
-    out_file = open(os.path.join(in_dir, f"{number}_out.txt"), 'w', encoding='utf-8')
-    out_image_dir = os.path.join(in_dir, f"{number}_images")
+    width = args[2]
+    height = args[3]
+    wait_timeout = args[4]
+    scrape_hover = args[5]
+    loglevel = args[6]
+    in_file = open(os.path.join(in_dir, f"{worker_num}.txt"), 'r', encoding='utf-8')
+    out_file = open(os.path.join(in_dir, f"{worker_num}_out.txt"), 'w', encoding='utf-8')
+    out_image_dir = os.path.join(in_dir, f"{worker_num}_images")
     driver_path = './chromedriver'
     configLogging(loglevel)
-    logger = logging.getLogger(f"worker_{number}")
-    crawler = Crawler(driver_path, out_image_dir, logger, scrape_hover=scrape_hover)
+    logger = logging.getLogger(f"worker_{worker_num}")
+    crawler = Crawler(driver_path, out_image_dir, width, height, wait_timeout, logger, draw_box=False,
+                      scrape_hover=scrape_hover,
+                      nogui=True)
     for i, url in enumerate(in_file):
         try:
             results = crawler.processURL(url.strip())
         except Exception as exp:
-            logger.error(f"Worker {number} encountered an exception when processing {url}: {exp}")
+            logger.error(f"Worker {worker_num} encountered an exception when processing {url}: {exp}")
             continue
         for result in results:
             out_file.write(json.dumps(result) + '\n')
         out_file.flush()
 
         if i > 0 and i % 100 == 0:
-            logger.info(f"Worker {number} has processed {i} urls")
+            logger.info(f"Worker {worker_num} has processed {i} urls")
             crawler.restart()  # 重新启动一下browser，防止内存泄漏
-            logger.info(f"Worker {number} has restarted the browser")
+            logger.info(f"Worker {worker_num} has restarted the browser")
     crawler.quit()
 
 
@@ -80,6 +85,9 @@ if __name__ == "__main__":
     parser.add_argument("--driver_path", type=str, default='./chromedriver')
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_urls", type=int, default=10000)
+    parser.add_argument("--width", type=int, default=1920)
+    parser.add_argument("--height", type=int, default=1080)
+    parser.add_argument("--wait_timeout", type=int, default=10)
     parser.add_argument("--scrape_hover", action='store_true')
     parser.add_argument("--loglevel", type=str, default='INFO')
 
@@ -95,7 +103,8 @@ if __name__ == "__main__":
     os.makedirs(out_dir, exist_ok=True)
     random.seed(args.seed)
     split_task_files(cdx_file_path, out_dir, num_workers, url_st, args.num_urls)
-    args_list = [(i, out_dir, args.scrape_hover, args.loglevel) for i in range(num_workers)]
+    args_list = [(i, out_dir, args.width, args.height, args.wait_timeout, args.scrape_hover, args.loglevel) for i in
+                 range(num_workers)]
     pool.map(worker_function, args_list)
     # 关闭进程池，等待所有进程完成
     pool.close()
